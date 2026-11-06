@@ -14,12 +14,13 @@
     @media(max-width:360px){.page{width:calc(100% - 24px)}.card{padding-right:15px;padding-left:15px}.event{grid-template-columns:49px 12px minmax(0,1fr);gap:9px}.status{padding-right:7px;padding-left:7px;font-size:9px}.todo-form{grid-template-columns:minmax(0,1fr)}.todo-form .add-button{width:100%}.day-count{font-size:11px}}
     @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition-duration:.01ms!important}}
     .event-edit-fields{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:8px}.todo-edit-fields{min-width:0;flex:1;display:grid;gap:7px}.event-edit-title{grid-column:1/-1}.edit-field{min-width:0;width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:13px}.save-button{color:var(--green);background:var(--pale)}
+    .auth-area{display:flex;align-items:center;gap:10px}.auth-user{color:var(--muted);font-size:12px}.google-button,.signout-button{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);font-size:12px;font-weight:600;cursor:pointer}.google-button:hover,.signout-button:hover{border-color:#b7c3b0;background:var(--pale)}.auth-error{margin:10px 0 0;color:#a05d4c;font-size:12px}@media(max-width:680px){.topbar{align-items:flex-start}.auth-area{flex-wrap:wrap;justify-content:flex-end}.auth-user{max-width:150px;overflow-wrap:anywhere}}
   </style>
 </head>
 
 <body>
   <main class="page">
-    <header class="topbar"><div class="brand"><span class="brand-mark" aria-hidden="true">日</span><span>日常清單</span></div><span class="top-note">留一點空白，給今天的自己。</span></header>
+    
     <section class="hero" aria-labelledby="page-title"><p class="eyebrow">YOUR DAY, AT A GLANCE</p><h1 id="page-title">今天的安排</h1><div class="hero-bottom"><div class="date-time"><time class="date" id="today-date"></time><time class="clock" id="live-clock" aria-label="現在時間" aria-live="off"></time></div><span class="day-count">星期裡，也有剛剛好的步調。</span></div></section>
     <div class="layout"><div class="column">
       <section class="card" aria-labelledby="schedule-heading"><div class="section-heading"><h2 id="schedule-heading">今日行程</h2><span class="section-label" id="event-count">03 個安排</span></div><p class="today-chip" id="schedule-date" aria-label="今日行程日期"></p><div class="schedule" id="schedule-list" aria-live="polite">
@@ -50,6 +51,49 @@
     </div></div>
     <footer class="footer">把日子過成喜歡的樣子。</footer>
   </main>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDJjPexEMLjq5_NjMbpCzxvKeYnAtEf2h4",
+      authDomain: "class-20261016.firebaseapp.com",
+      projectId: "class-20261016",
+      storageBucket: "class-20261016.firebasestorage.app",
+      messagingSenderId: "813757781225",
+      appId: "1:813757781225:web:928166f9944a1090564c78"
+    };
+    const auth = getAuth(initializeApp(firebaseConfig));
+    const provider = new GoogleAuthProvider();
+    const signInButton = document.getElementById("google-sign-in");
+    const signOutButton = document.getElementById("sign-out");
+    const userLabel = document.getElementById("auth-user");
+    const authError = document.getElementById("auth-error");
+
+    signInButton.addEventListener("click", async () => {
+      authError.hidden = true;
+      signInButton.disabled = true;
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (error) {
+        if (error.code !== "auth/popup-closed-by-user" && error.code !== "auth/cancelled-popup-request") {
+          authError.textContent = error.code === "auth/unauthorized-domain"
+            ? "此網站網域尚未加入 Firebase 授權網域，請至 Authentication 設定加入後再試。"
+            : `Google 登入失敗，請稍後再試。(${error.code || "unknown"})`;
+          authError.hidden = false;
+        }
+      } finally {
+        signInButton.disabled = false;
+      }
+    });
+    signOutButton.addEventListener("click", () => signOut(auth));
+    onAuthStateChanged(auth, user => {
+      userLabel.textContent = user ? `已登入：${user.displayName || user.email || "Google 使用者"}` : "";
+      signInButton.hidden = Boolean(user);
+      signOutButton.hidden = !user;
+      if (!user) authError.hidden = true;
+    });
+  </script>
   <script>
     (() => {
       const form = document.getElementById('event-form');
